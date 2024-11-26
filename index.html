@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link rel="icon" href="https://itzpire.com/file/30e0254b3e62.jpg">
+  <title>Make - me - NGL</title>
+  <style>
+    /* Reset Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to bottom, #ffe6f9, #ffccff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      background: #fff;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    .container h1 {
+      color: #ff66b3;
+      font-size: 28px;
+      margin-bottom: 15px;
+      text-shadow: 1px 1px 5px rgba(255, 102, 179, 0.5);
+    }
+    .container p {
+      color: #555;
+      font-size: 16px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .input-area {
+      margin-top: 15px;
+      display: none; /* Awalnya tersembunyi */
+    }
+    .input-area textarea {
+      width: 100%;
+      height: 100px;
+      border: 2px solid #ff99cc;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+      resize: none;
+      font-family: 'Poppins', sans-serif;
+    }
+    .input-area textarea:focus {
+      outline: none;
+      border-color: #ff66b3;
+      box-shadow: 0 0 5px #ff66b3;
+    }
+    .input-area button {
+      margin-top: 15px;
+      background: #ff66b3;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 12px 25px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      font-family: 'Poppins', sans-serif;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+    .input-area button:hover {
+      background: #ff3399;
+    }
+    .notification {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff66b3;
+      color: white;
+      width: 90%;
+      max-width: 450px;
+      padding: 15px 20px;
+      border-radius: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      font-size: 14px;
+      text-align: center;
+      opacity: 0;
+      transition: all 0.5s ease;
+      z-index: 1000;
+    }
+    .notification.show {
+      top: 20px;
+      opacity: 1;
+    }
+    .notification.error {
+      background: #ff4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1> Kirim Pesan Rahasia </h1>
+    <p>Pesanmu akan terkirim secara anonim ke saya 💌</p>
+    <div class="input-area" id="inputArea">
+      <textarea id="message" placeholder="Tulis pesanmu di sini..."></textarea>
+      <button id="sendButton" onclick="sendMessage()">Kirim Pesan</button>
+    </div>
+    <p id="cooldownMessage" style="display: none; color: #555; font-size: 14px;">
+      Kamu hanya bisa mengirim pesan sekali. Silakan tunggu...
+    </p>
+  </div>
+  <div class="notification" id="notification"></div>
+  <script src="xwby.js"></script>
+  <script>
+    function showNotification(message, type = "success") {
+      const notification = document.getElementById("notification");
+      notification.textContent = message;
+      notification.className = `notification show ${type}`;
+      setTimeout(() => {
+        notification.className = "notification";
+      }, 3000);
+    }
+
+    function canSendMessage() {
+      const lastSent = localStorage.getItem("lastSentMessage");
+      if (!lastSent) return true;
+
+      const now = new Date().getTime();
+      const twoMinutes = 2 * 60 * 1000; // 2 menit dalam milidetik
+      return now - parseInt(lastSent, 10) >= twoMinutes;
+    }
+
+    function updateLastSentTime() {
+      const now = new Date().getTime();
+      localStorage.setItem("lastSentMessage", now.toString());
+    }
+
+    function enableForm() {
+      document.getElementById("inputArea").style.display = "block";
+      document.getElementById("cooldownMessage").style.display = "none";
+    }
+
+    function disableForm() {
+      document.getElementById("inputArea").style.display = "none";
+      document.getElementById("cooldownMessage").style.display = "block";
+    }
+
+    async function sendMessage() {
+      const message = document.getElementById("message").value.trim();
+      if (!message) {
+        showNotification("Pesan tidak boleh kosong!", "error");
+        return;
+      }
+
+      if (!canSendMessage()) {
+        showNotification("Kamu hanya bisa mengirim pesan setiap 2 menit!", "error");
+        return;
+      }
+
+      disableForm(); // Sembunyikan kolom input setelah pesan dikirim
+
+      try {
+        const success = await sendToTelegram(`Pesan Anonim Baru:\n\n${message}`);
+        if (success) {
+          showNotification("Pesan berhasil terkirim! Terima kasih 💖");
+          document.getElementById("message").value = "";
+          updateLastSentTime();
+          setTimeout(enableForm, 2 * 60 * 1000); // Tampilkan lagi setelah 2 menit
+        } else {
+          showNotification("Gagal mengirim pesan. Coba lagi nanti!", "error");
+          enableForm(); // Tampilkan kembali kolom input jika gagal
+        }
+      } catch (error) {
+        showNotification("Terjadi kesalahan. Coba lagi nanti!", "error");
+        enableForm(); // Tampilkan kembali kolom input jika ada error
+      }
+    }
+
+    window.onload = function () {
+      if (canSendMessage()) {
+        enableForm();
+      } else {
+        disableForm();
+      }
+    };
+  </script>
+</body>
+</html>
